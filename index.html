@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terra Nexus</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:#050505;color:#E0E0E0}
+#root{min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#00FF88;border-radius:2px}
+select{-webkit-appearance:none}select option{background:#111;color:#e0e0e0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px rgba(0,255,136,.2)}50%{box-shadow:0 0 20px rgba(0,255,136,.4)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scanline{0%{top:-100%}100%{top:200%}}
+@keyframes dataStream{0%{background-position:0 0}100%{background-position:0 100%}}
+@keyframes borderGlow{0%,100%{border-color:rgba(0,255,136,.15)}50%{border-color:rgba(0,255,136,.4)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+#loading{position:fixed;inset:0;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#00FF88;font-family:'Sora',sans-serif}
+#loading h1{font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
+#loading p{font-size:11px;opacity:.5;color:#999;letter-spacing:1px}
+#loading .sp{width:32px;height:32px;border:2px solid rgba(0,255,136,.15);border-top-color:#00FF88;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px}
+.noise{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+</style></head><body>
+<div class="noise"></div>
+<div id="loading"><div class="sp"></div><h1>TERRA NEXUS</h1><p>Initializing Carbon Intelligence...</p></div>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useMemo,useEffect}=React;
+const {BarChart,Bar,LineChart,Line,PieChart,Pie,Cell,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer,ComposedChart,AreaChart,Area,RadarChart,Radar,PolarGrid,PolarAngleAxis,PolarRadiusAxis,Treemap}=Recharts;
+
+const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ═══════════════ THEME ═══════════════ */
+const T={
+  bg:"#050505",bg2:"#0A0A0A",bg3:"#111111",bg4:"#1A1A1A",
+  card:"#0C0C0C",card2:"#101010",
+  bdr:"#1E1E1E",bdr2:"#2A2A2A",
+  w:"#FFFFFF",dk:"#E8E8E8",sub:"#888888",lt:"#555555",
+  g1:"#00FF88",g2:"#00DD77",g3:"#00BB66",g4:"#009955",g5:"#007744",
+  gDim:"rgba(0,255,136,.08)",gDim2:"rgba(0,255,136,.15)",gDim3:"rgba(0,255,136,.25)",
+  red:"#FF4444",redDim:"rgba(255,68,68,.12)",
+  amb:"#FFB800",ambDim:"rgba(255,184,0,.12)",
+  blue:"#4488FF",blueDim:"rgba(68,136,255,.12)",
+  cyan:"#00D4FF",purple:"#AA66FF",pink:"#FF66AA",
+  grn:"#00FF88",grnBg:"rgba(0,255,136,.08)"
+};
+
+/* ═══════════════ GLOBAL FACILITIES ═══════════════ */
+const FACILITIES={
+  "SG-SIN":{f:"Singapore Mixed-Use Campus",city:"Singapore",country:"SG",sector:"Mixed-Use",sqm:155000,emp:4200,
+    s1:{a:[412,398,445,460,520,610,680,650,590,510,440,415],b:[388,372,410,430,485,570,630,605,552,478,412,390]},
+    s2:{a:[2840,2710,3120,3380,3890,4520,4810,4650,4120,3640,3010,2790],b:[2680,2560,2940,3190,3670,4260,4530,4380,3880,3430,2840,2630]},
+    s3:{a:[5200,4980,5680,6100,6800,7400,7680,7420,6820,6200,5400,5100],b:[4940,4730,5390,5800,6460,7020,7290,7050,6480,5890,5130,4840]},
+    elec:{a:[8100,7720,8890,9640,11100,12880,13700,13240,11750,10380,8580,7950],b:[7640,7310,8390,9100,10460,12140,12920,12480,11060,9780,8100,7490]},
+    water:{a:[42000,40200,45800,49400,55200,60400,63000,61000,56200,50400,44200,42000],b:[39900,38200,43500,46900,52400,57400,59800,58000,53400,47900,42000,39900]},
+    waste:{gen:[820,790,880,940,1020,1120,1180,1140,1040,920,840,810],div:[490,470,528,565,612,672,708,684,624,552,504,486]},
+    carbon:{credits:4200,price:48.5,offset:32},
+    esg:{e:78,s:72,g:81},ai:{risk:23,conf:94,pred:-8.2},
+    fin:{ctax:2.4,grev:18.2,roi:340},compliance:{csrd:88,issb:82,sec:79,tcfd:91}},
+  "US-NYC":{f:"New York Office Tower",city:"New York",country:"US",sector:"Commercial RE",sqm:98000,emp:2800,
+    s1:{a:[520,510,540,490,460,480,510,520,500,490,530,540],b:[490,480,505,460,430,450,475,485,465,460,495,505]},
+    s2:{a:[3400,3280,3560,3200,3050,3180,3380,3450,3320,3250,3480,3520],b:[3210,3100,3360,3020,2880,3000,3190,3260,3130,3070,3280,3320]},
+    s3:{a:[6800,6600,7200,6500,6100,6400,6700,6900,6600,6500,7000,7100],b:[6460,6270,6840,6180,5800,6080,6370,6560,6270,6180,6650,6740]},
+    elec:{a:[9700,9350,10150,9130,8700,9080,9650,9850,9480,9280,9930,10040],b:[9160,8830,9580,8620,8220,8570,9110,9300,8950,8760,9370,9480]},
+    water:{a:[38000,36800,40000,36200,34200,35800,37400,38600,37000,36400,39200,39600],b:[36100,34960,38000,34400,32500,34000,35500,36700,35200,34600,37200,37600]},
+    waste:{gen:[680,660,720,650,610,640,670,690,660,650,700,710],div:[380,370,403,364,342,358,375,387,370,364,392,398]},
+    carbon:{credits:3100,price:52.3,offset:28},
+    esg:{e:74,s:68,g:76},ai:{risk:31,conf:91,pred:-6.5},
+    fin:{ctax:3.8,grev:14.6,roi:280},compliance:{csrd:72,issb:78,sec:85,tcfd:83}},
+  "DE-FRA":{f:"Frankfurt Green Campus",city:"Frankfurt",country:"DE",sector:"Technology",sqm:45000,emp:1600,
+    s1:{a:[180,172,195,210,240,280,310,295,268,232,200,185],b:[162,155,176,189,216,252,279,266,241,209,180,167]},
+    s2:{a:[1200,1150,1320,1430,1640,1910,2030,1960,1740,1540,1270,1180],b:[1080,1035,1190,1290,1480,1720,1830,1770,1570,1390,1140,1060]},
+    s3:{a:[2400,2300,2640,2860,3200,3500,3640,3520,3240,2940,2560,2420],b:[2260,2170,2490,2700,3010,3300,3430,3310,3050,2770,2410,2280]},
+    elec:{a:[3420,3280,3770,4080,4690,5450,5800,5600,4960,4390,3620,3360],b:[3080,2950,3390,3670,4220,4910,5220,5040,4460,3950,3260,3020]},
+    water:{a:[18000,17200,19600,21200,23600,25800,26800,25900,23800,21600,18800,17800],b:[16200,15500,17600,19100,21200,23200,24100,23300,21400,19400,16900,16000]},
+    waste:{gen:[340,326,372,400,450,495,518,500,460,418,362,338],div:[224,215,245,264,297,327,342,330,304,276,239,223]},
+    carbon:{credits:1800,price:65.2,offset:41},
+    esg:{e:86,s:80,g:88},ai:{risk:14,conf:96,pred:-12.1},
+    fin:{ctax:4.2,grev:24.8,roi:520},compliance:{csrd:95,issb:90,sec:68,tcfd:94}},
+  "AE-DXB":{f:"Dubai Financial District Hub",city:"Dubai",country:"AE",sector:"Financial Services",sqm:62000,emp:1900,
+    s1:{a:[340,325,380,420,510,620,690,660,580,480,370,345],b:[310,298,347,384,466,567,631,604,530,439,338,316]},
+    s2:{a:[2200,2100,2460,2720,3300,4020,4470,4280,3760,3110,2400,2230],b:[2010,1920,2250,2490,3020,3680,4090,3920,3440,2850,2200,2040]},
+    s3:{a:[4100,3920,4600,5080,6160,7500,8340,7980,7020,5800,4480,4160],b:[3770,3610,4230,4670,5660,6900,7670,7340,6460,5340,4120,3830]},
+    elec:{a:[6280,5990,7020,7760,9420,11470,12750,12210,10730,8870,6850,6360],b:[5740,5480,6420,7110,8620,10500,11670,11180,9810,8110,6280,5830]},
+    water:{a:[31000,29600,34700,38400,46600,56700,63000,60300,53000,43800,33900,31500],b:[28400,27100,31800,35200,42700,51900,57700,55300,48600,40200,31100,28900]},
+    waste:{gen:[500,478,560,620,750,910,1010,970,850,704,544,505],div:[275,263,308,341,413,501,556,534,468,387,299,278]},
+    carbon:{credits:2600,price:42.0,offset:25},
+    esg:{e:71,s:65,g:73},ai:{risk:35,conf:89,pred:-5.8},
+    fin:{ctax:1.2,grev:11.4,roi:210},compliance:{csrd:62,issb:65,sec:58,tcfd:70}},
+  "JP-TKY":{f:"Tokyo Net-Zero Tower",city:"Tokyo",country:"JP",sector:"Manufacturing HQ",sqm:72000,emp:2200,
+    s1:{a:[280,268,310,340,390,440,470,455,410,360,300,282],b:[252,241,279,306,351,396,423,410,369,324,270,254]},
+    s2:{a:[1900,1820,2100,2300,2640,2980,3180,3080,2780,2440,2020,1880],b:[1710,1640,1890,2070,2380,2680,2860,2770,2500,2200,1820,1690]},
+    s3:{a:[3800,3640,4200,4600,5280,5960,6360,6160,5560,4880,4040,3760],b:[3500,3360,3870,4230,4860,5480,5850,5670,5120,4490,3720,3460]},
+    elec:{a:[5420,5190,5990,6560,7530,8500,9070,8770,7930,6960,5760,5360],b:[4880,4670,5390,5900,6780,7650,8160,7890,7140,6260,5180,4820]},
+    water:{a:[28800,27600,31800,34800,39600,43800,46200,44700,40200,35400,29400,27200],b:[25900,24800,28600,31300,35600,39400,41600,40200,36200,31900,26500,24500]},
+    waste:{gen:[440,422,486,532,610,688,734,712,642,564,468,434],div:[308,295,340,372,427,482,514,498,449,395,328,304]},
+    carbon:{credits:2900,price:58.0,offset:38},
+    esg:{e:82,s:76,g:84},ai:{risk:18,conf:95,pred:-10.4},
+    fin:{ctax:3.5,grev:21.6,roi:440},compliance:{csrd:78,issb:88,sec:72,tcfd:89}},
+  "GB-LDN":{f:"London ESG Centre",city:"London",country:"GB",sector:"Banking & Finance",sqm:54000,emp:1800,
+    s1:{a:[220,212,240,258,290,330,358,345,315,278,235,222],b:[198,191,216,232,261,297,322,311,284,250,212,200]},
+    s2:{a:[1500,1440,1660,1790,2010,2290,2480,2400,2180,1920,1590,1480],b:[1350,1296,1494,1611,1809,2061,2232,2160,1962,1728,1431,1332]},
+    s3:{a:[3000,2880,3320,3580,4020,4580,4960,4800,4360,3840,3180,2960],b:[2760,2650,3050,3290,3700,4210,4560,4420,4010,3530,2930,2720]},
+    elec:{a:[4280,4110,4730,5110,5730,6530,7070,6840,6210,5470,4530,4220],b:[3850,3700,4260,4600,5160,5880,6360,6160,5590,4920,4080,3800]},
+    water:{a:[21600,20700,23800,25700,28900,32900,35600,34400,31200,27500,22800,21200],b:[19400,18600,21400,23100,26000,29600,32000,30900,28100,24700,20500,19100]},
+    waste:{gen:[380,365,420,454,510,580,628,608,552,486,402,374],div:[266,256,294,318,357,406,440,426,386,340,281,262]},
+    carbon:{credits:2200,price:62.8,offset:36},
+    esg:{e:84,s:78,g:86},ai:{risk:16,conf:95,pred:-11.2},
+    fin:{ctax:4.8,grev:22.4,roi:480},compliance:{csrd:92,issb:86,sec:75,tcfd:92}},
+  "BR-SAO":{f:"São Paulo Green Complex",city:"São Paulo",country:"BR",sector:"Agri-Tech",sqm:38000,emp:1200,
+    s1:{a:[260,255,270,250,240,248,260,268,255,250,265,272],b:[240,235,249,230,221,229,240,247,235,230,244,250]},
+    s2:{a:[1600,1570,1660,1540,1480,1530,1600,1650,1570,1540,1640,1670],b:[1440,1413,1494,1386,1332,1377,1440,1485,1413,1386,1476,1503]},
+    s3:{a:[3800,3730,3940,3660,3520,3640,3800,3920,3730,3660,3880,3960],b:[3500,3440,3620,3370,3240,3350,3500,3610,3430,3370,3570,3650]},
+    elec:{a:[4560,4480,4730,4390,4220,4360,4560,4700,4480,4390,4680,4770],b:[4100,4030,4260,3950,3800,3920,4100,4230,4030,3950,4210,4290]},
+    water:{a:[22800,22400,23600,22000,21100,21800,22800,23500,22400,22000,23400,23800],b:[21700,21300,22400,20900,20000,20700,21700,22300,21300,20900,22200,22600]},
+    waste:{gen:[420,412,436,406,390,404,420,434,412,406,430,440],div:[231,227,240,223,215,222,231,239,227,223,237,242]},
+    carbon:{credits:1500,price:28.5,offset:22},
+    esg:{e:68,s:74,g:70},ai:{risk:38,conf:87,pred:-4.6},
+    fin:{ctax:0.8,grev:9.2,roi:180},compliance:{csrd:55,issb:58,sec:52,tcfd:60}},
+  "AU-SYD":{f:"Sydney Carbon-Neutral Hub",city:"Sydney",country:"AU",sector:"Energy & Utilities",sqm:48000,emp:1400,
+    s1:{a:[200,210,220,240,260,270,265,250,230,215,205,198],b:[180,189,198,216,234,243,239,225,207,194,185,178]},
+    s2:{a:[1350,1420,1480,1620,1750,1820,1790,1690,1550,1450,1380,1340],b:[1220,1278,1332,1458,1575,1638,1611,1521,1395,1305,1242,1206]},
+    s3:{a:[2700,2840,2960,3240,3500,3640,3580,3380,3100,2900,2760,2680],b:[2480,2610,2720,2980,3220,3350,3290,3110,2850,2670,2540,2460]},
+    elec:{a:[3850,4050,4220,4620,5000,5190,5110,4820,4420,4140,3940,3820],b:[3470,3650,3800,4160,4500,4670,4600,4340,3980,3730,3550,3440]},
+    water:{a:[19200,20200,21100,23100,25000,25900,25500,24100,22100,20700,19700,19100],b:[17300,18200,19000,20800,22500,23300,23000,21700,19900,18600,17700,17200]},
+    waste:{gen:[310,326,340,372,402,418,412,388,356,334,318,308],div:[217,228,238,260,281,293,288,272,249,234,223,216]},
+    carbon:{credits:2400,price:55.0,offset:42},
+    esg:{e:88,s:82,g:90},ai:{risk:12,conf:97,pred:-13.5},
+    fin:{ctax:3.2,grev:28.4,roi:580},compliance:{csrd:82,issb:85,sec:70,tcfd:88}}
+};
+
+/* Scope breakdown categories */
+const SCOPE_CATS=[
+  {name:"Purchased Electricity",scope:2,value:38.2,color:"#00FF88"},
+  {name:"District Cooling/Heating",scope:2,value:14.8,color:"#00DD77"},
+  {name:"Natural Gas (Stationary)",scope:1,value:12.4,color:"#FFB800"},
+  {name:"Company Vehicles",scope:1,value:5.2,color:"#FF8800"},
+  {name:"Refrigerant Leaks",scope:1,value:3.1,color:"#FF4444"},
+  {name:"Purchased Goods",scope:3,value:8.6,color:"#4488FF"},
+  {name:"Business Travel",scope:3,value:4.8,color:"#AA66FF"},
+  {name:"Employee Commuting",scope:3,value:3.2,color:"#FF66AA"},
+  {name:"Upstream Transport",scope:3,value:5.1,color:"#00D4FF"},
+  {name:"Waste in Operations",scope:3,value:2.8,color:"#888888"},
+  {name:"Downstream Logistics",scope:3,value:1.8,color:"#666666"}
+];
+
+/* Regulatory frameworks */
+const REGULATIONS=[
+  {name:"CSRD (EU)",deadline:"2026 Q1",status:"On Track",pct:82,region:"EU"},
+  {name:"SEC Climate (US)",deadline:"2026 Q2",status:"At Risk",pct:68,region:"US"},
+  {name:"ISSB S1/S2",deadline:"2025 Q4",status:"Compliant",pct:91,region:"Global"},
+  {name:"TCFD Aligned",deadline:"Ongoing",status:"Compliant",pct:88,region:"Global"},
+  {name:"SBTi Validation",deadline:"2026 Q3",status:"In Progress",pct:74,region:"Global"},
+  {name:"CDP Disclosure",deadline:"2025 Q3",status:"Submitted",pct:95,region:"Global"},
+  {name:"UAE Net Zero 2050",deadline:"2050",status:"On Track",pct:45,region:"GCC"},
+  {name:"Singapore Green Plan",deadline:"2030",status:"On Track",pct:62,region:"APAC"}
+];
+
+const S=a=>a.reduce((x,y)=>x+y,0);
+const P=(n,o)=>o?((n-o)/o*100):null;
+const F=n=>{if(n==null)return"N/A";const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+"M";if(a>=1e3)return(n/1e3).toFixed(1)+"K";return n.toFixed(0);};
+const FP=n=>n==null?"N/A":(n>=0?"+":"")+n.toFixed(1)+"%";
+const FM=n=>"$"+(n<0?"-":"")+Math.abs(n).toLocaleString("en",{maximumFractionDigits:1})+"M";
+const ks=Object.keys(FACILITIES);
+
+const tabs=[
+  {id:"exec",l:"Command Centre",ic:"◉"},
+  {id:"emissions",l:"Emissions Intelligence",ic:"◈"},
+  {id:"scope3",l:"Supply Chain",ic:"◇"},
+  {id:"carbon",l:"Carbon Markets",ic:"◆"},
+  {id:"esg",l:"ESG Analytics",ic:"◎"},
+  {id:"fin",l:"Financial Impact",ic:"◐"},
+  {id:"compliance",l:"Regulatory",ic:"◑"},
+  {id:"ai",l:"Scenarios & Forecasts",ic:"◒"}
+];
+
+/* ═══ Components ═══ */
+const Card=({children,style,glow})=><div style={{background:T.card,borderRadius:10,border:`1px solid ${glow?'rgba(0,255,136,.2)':T.bdr}`,animation:glow?'borderGlow 3s ease infinite':undefined,position:'relative',overflow:'hidden',...style}}>{children}</div>;
+
+const GlowLine=({color=T.g1})=><div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${color},transparent)`}}/>;
+
+const Metric=({label,value,sub,yoy,icon,accent=T.g1,inv,badge})=>{
+  const yG=inv?(yoy>0):(yoy<0);
+  return(
+    <Card style={{padding:"14px 16px"}}>
+      <GlowLine color={accent}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
+        <span style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:1.2,lineHeight:1.3,maxWidth:"80%",fontFamily:"'Space Mono',monospace"}}>{label}</span>
+        {icon&&<span style={{fontSize:14,opacity:.7}}>{icon}</span>}
+      </div>
+      <div style={{fontSize:22,fontWeight:800,color:T.w,lineHeight:1.1,fontFamily:"'Space Mono',monospace"}}>{value}</div>
+      {sub&&<div style={{fontSize:9,color:T.lt,marginTop:2,fontFamily:"'Space Mono',monospace"}}>{sub}</div>}
+      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:5,flexWrap:"wrap"}}>
+        {yoy!=null&&<span style={{fontSize:9,fontWeight:700,color:yG?T.grn:yoy===0?T.sub:T.red,background:yG?T.grnBg:yoy===0?"rgba(255,255,255,.05)":T.redDim,padding:"2px 7px",borderRadius:10,whiteSpace:"nowrap",fontFamily:"'Space Mono',monospace"}}>{yoy<0?"▼":"▲"}{Math.abs(yoy).toFixed(1)}% YoY</span>}
+        {badge&&<span style={{fontSize:8,fontWeight:700,color:accent,background:accent+"18",padding:"2px 7px",borderRadius:10}}>{badge}</span>}
+      </div>
+    </Card>
+  );
+};
+
+const TT=({active,payload,label})=>{
+  if(!active||!payload?.length)return null;
+  return(<div style={{background:"#111",border:`1px solid ${T.bdr2}`,borderRadius:6,padding:"8px 12px",boxShadow:"0 8px 32px rgba(0,0,0,.6)",backdropFilter:"blur(20px)"}}>
+    <div style={{fontSize:10,fontWeight:700,color:T.g1,marginBottom:4,fontFamily:"'Space Mono',monospace"}}>{label}</div>
+    {payload.map((p,i)=><div key={i} style={{fontSize:10,color:p.color||T.sub,display:"flex",justifyContent:"space-between",gap:14}}><span>{p.name}</span><span style={{fontWeight:700,fontFamily:"'Space Mono',monospace"}}>{typeof p.value==="number"?p.value.toLocaleString("en",{maximumFractionDigits:1}):p.value}</span></div>)}
+  </div>);
+};
+
+const Sec=({children,sub,tag})=><div style={{marginBottom:4}}>
+  <div style={{display:"flex",alignItems:"center",gap:8}}>
+    <div style={{fontSize:14,fontWeight:700,color:T.w,letterSpacing:.3}}>{children}</div>
+    {tag&&<span style={{fontSize:8,fontWeight:700,color:T.g1,background:T.gDim,padding:"2px 8px",borderRadius:10,fontFamily:"'Space Mono',monospace"}}>{tag}</span>}
+  </div>
+  {sub&&<div style={{fontSize:10,color:T.lt}}>{sub}</div>}
+</div>;
+
+const Grid=({cols="repeat(auto-fit,minmax(180px,1fr))",gap=10,children,style})=><div style={{display:"grid",gridTemplateColumns:cols,gap,...style}}>{children}</div>;
+
+const StatusDot=({status})=>{
+  const c=status==="Compliant"||status==="Submitted"?T.grn:status==="On Track"||status==="In Progress"?T.amb:T.red;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:c,boxShadow:`0 0 6px ${c}`}}/><span style={{fontSize:9,color:c,fontWeight:600}}>{status}</span></span>;
+};
+
+const ProgressBar=({pct,color=T.g1})=><div style={{width:"100%",height:4,background:T.bg3,borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:2,transition:"width .6s ease"}}/></div>;
+
+/* ═══ DASHBOARD ═══ */
+function Dashboard(){
+  const[tab,setTab]=useState("exec");
+  const[facility,setFacility]=useState("ALL");
+  const[sortCol,setSortCol]=useState(null);
+  const[sortDir,setSortDir]=useState("asc");
+  const[tick,setTick]=useState(0);
+
+  useEffect(()=>{const iv=setInterval(()=>setTick(t=>t+1),3000);return()=>clearInterval(iv);},[]);
+
+  const agg=useMemo(()=>{
+    const kk=facility==="ALL"?ks:[facility];
+    const a={s1_24:0,s1_25:0,s2_24:0,s2_25:0,s3_24:0,s3_25:0,e24:0,e25:0,w24:0,w25:0,wGen:0,wDiv:0,sqm:0,emp:0,credits:0,ctax:0,grev:0};
+    kk.forEach(k=>{const h=FACILITIES[k];
+      a.s1_24+=S(h.s1.a);a.s1_25+=S(h.s1.b);
+      a.s2_24+=S(h.s2.a);a.s2_25+=S(h.s2.b);
+      a.s3_24+=S(h.s3.a);a.s3_25+=S(h.s3.b);
+      a.e24+=S(h.elec.a);a.e25+=S(h.elec.b);
+      a.w24+=S(h.water.a);a.w25+=S(h.water.b);
+      a.wGen+=S(h.waste.gen);a.wDiv+=S(h.waste.div);
+      a.sqm+=h.sqm;a.emp+=h.emp;a.credits+=h.carbon.credits;
+      a.ctax+=h.fin.ctax;a.grev+=h.fin.grev;
+    });
+    a.total24=a.s1_24+a.s2_24+a.s3_24;
+    a.total25=a.s1_25+a.s2_25+a.s3_25;
+    return a;
+  },[facility]);
+
+  const md=useMemo(()=>{
+    const kk=facility==="ALL"?ks:[facility];
+    return MO.map((m,i)=>{
+      const r={month:m,s1_24:0,s1_25:0,s2_24:0,s2_25:0,s3_24:0,s3_25:0,e24:0,e25:0,w24:0,w25:0};
+      kk.forEach(k=>{const h=FACILITIES[k];
+        r.s1_24+=h.s1.a[i];r.s1_25+=h.s1.b[i];
+        r.s2_24+=h.s2.a[i];r.s2_25+=h.s2.b[i];
+        r.s3_24+=h.s3.a[i];r.s3_25+=h.s3.b[i];
+        r.e24+=h.elec.a[i];r.e25+=h.elec.b[i];
+        r.w24+=h.water.a[i];r.w25+=h.water.b[i];
+      });
+      r.total24=r.s1_24+r.s2_24+r.s3_24;
+      r.total25=r.s1_25+r.s2_25+r.s3_25;
+      return r;
+    });
+  },[facility]);
+
+  const hc=useMemo(()=>{
+    return ks.map(k=>{
+      const h=FACILITIES[k];
+      const t24=S(h.s1.a)+S(h.s2.a)+S(h.s3.a);
+      const t25=S(h.s1.b)+S(h.s2.b)+S(h.s3.b);
+      return{id:k,nm:h.f,city:h.city,sector:h.sector,sqm:h.sqm,emp:h.emp,
+        tY:P(t25,t24),t25,eY:P(S(h.elec.b),S(h.elec.a)),wY:P(S(h.water.b),S(h.water.a)),
+        divR:S(h.waste.div)/S(h.waste.gen)*100,
+        esgAvg:(h.esg.e+h.esg.s+h.esg.g)/3,risk:h.ai.risk,pred:h.ai.pred,
+        grev:h.fin.grev,ctax:h.fin.ctax,roi:h.fin.roi,
+        csrd:h.compliance.csrd,issb:h.compliance.issb,offset:h.carbon.offset};
+    });
+  },[]);
+
+  const d=agg;
+  const tY=P(d.total25,d.total24);
+  const dR=d.wGen>0?d.wDiv/d.wGen*100:0;
+  const handleSort=(c)=>{if(sortCol===c)setSortDir(sortDir==="asc"?"desc":"asc");else{setSortCol(c);setSortDir("asc");}};
+
+  const sortedHc=useMemo(()=>{
+    const arr=[...hc];
+    if(sortCol)arr.sort((a,b)=>sortDir==="asc"?(a[sortCol]??0)-(b[sortCol]??0):(b[sortCol]??0)-(a[sortCol]??0));
+    return arr;
+  },[hc,sortCol,sortDir]);
+
+  /* ═══ EXECUTIVE ═══ */
+  const renderExec=()=>{
+    const insights=[
+      {i:"🧠",t:`Net emissions down ${Math.abs(tY||0).toFixed(1)}% — scenario analysis suggests a further 3.2% reduction achievable by Q4 through HVAC optimization`,g:true},
+      {i:"⚡",t:`Frankfurt leads with −12.1% predicted trajectory. Deploy similar heat-pump retrofits across DE-FRA playbook to 4 more sites`,g:true},
+      {i:"⚠️",t:`São Paulo Scope 3 supply chain emissions showing anomaly: +2.1% upstream transport — rerouting model activated`,g:false},
+      {i:"🏆",t:`Sydney achieves highest ESG composite (86.7) — carbon-neutral certification target: 6 months ahead of schedule`,g:true}
+    ];
+    const avgEsg=hc.reduce((s,h)=>s+h.esgAvg,0)/hc.length;
+    const avgRisk=hc.reduce((s,h)=>s+h.risk,0)/hc.length;
+    const netZeroYr=2040+Math.round((100-avgEsg)/10);
+
+    return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {/* AI Insights */}
+      <Card style={{padding:"14px 16px",background:"linear-gradient(135deg,#0A0A0A,#111 40%,#0A1A10 100%)"}} glow>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:11,fontWeight:700,color:T.g1,fontFamily:"'Space Mono',monospace",letterSpacing:1}}>◉ STRATEGIC INSIGHTS</span>
+          <span style={{fontSize:8,color:T.lt,fontFamily:"'Space Mono',monospace",animation:"pulse 2s infinite"}}>LIVE • {new Date().toLocaleTimeString()}</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:6}}>
+          {insights.map((ins,i)=>(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 10px",borderRadius:6,background:"rgba(0,255,136,.03)",border:"1px solid rgba(0,255,136,.06)",animation:`slideUp .4s ease ${i*0.1}s both`}}><span style={{fontSize:14,flexShrink:0}}>{ins.i}</span><span style={{fontSize:10,color:ins.g?"rgba(0,255,136,.85)":"rgba(255,184,0,.85)",lineHeight:1.4}}>{ins.t}</span></div>))}
+        </div>
+      </Card>
+
+      {/* KPI Row */}
+      <Grid cols="repeat(auto-fit,minmax(160px,1fr))" gap={10}>
+        <Metric label="TOTAL EMISSIONS" value={F(d.total25)+" t"} sub={`PY: ${F(d.total24)} tCO₂e`} yoy={tY} icon="🌍" accent={T.g1} badge="SCOPE 1+2+3"/>
+        <Metric label="SCOPE 1 — DIRECT" value={F(d.s1_25)+" t"} sub={`PY: ${F(d.s1_24)}`} yoy={P(d.s1_25,d.s1_24)} icon="🏭" accent={T.amb}/>
+        <Metric label="SCOPE 2 — ENERGY" value={F(d.s2_25)+" t"} sub={`PY: ${F(d.s2_24)}`} yoy={P(d.s2_25,d.s2_24)} icon="⚡" accent={T.cyan}/>
+        <Metric label="SCOPE 3 — VALUE CHAIN" value={F(d.s3_25)+" t"} sub={`PY: ${F(d.s3_24)}`} yoy={P(d.s3_25,d.s3_24)} icon="🔗" accent={T.purple}/>
+        <Metric label="CARBON CREDITS" value={F(d.credits)} sub="Active offset portfolio" icon="💎" accent={T.g3} inv badge="PORTFOLIO"/>
+        <Metric label="DIVERSION RATE" value={dR.toFixed(1)+"%"} sub={`${F(d.wDiv)}t diverted / ${F(d.wGen)}t total`} icon="♻️" accent={T.g2} inv/>
+        <Metric label="GREEN REVENUE" value={FM(d.grev)} sub={`Carbon Tax Exposure: ${FM(d.ctax)}`} icon="💰" accent={T.grn} inv/>
+        <Metric label="NET-ZERO TARGET" value={netZeroYr} sub={`ESG Avg: ${avgEsg.toFixed(1)} | Risk: ${avgRisk.toFixed(0)}`} icon="🎯" accent={T.blue} badge="SBTi"/>
+      </Grid>
+
+      {/* Facility Scorecard + Globe placeholder */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <Card style={{padding:16}}>
+          <Sec sub="8 Global Facilities — Click to drill down" tag="REAL-TIME">Facility Command Board</Sec>
+          <div style={{display:"flex",flexDirection:"column",gap:5,marginTop:8}}>
+            {ks.map((k,idx)=>{const h=FACILITIES[k];const t25=S(h.s1.b)+S(h.s2.b)+S(h.s3.b);const t24=S(h.s1.a)+S(h.s2.a)+S(h.s3.a);const yy=P(t25,t24);
+            return(
+              <div key={k} onClick={()=>setFacility(k)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:facility===k?T.gDim:T.bg3,cursor:"pointer",border:facility===k?`1px solid ${T.gDim3}`:"1px solid transparent",transition:"all .2s",animation:`slideUp .3s ease ${idx*0.05}s both`}}>
+                <div style={{width:34,height:34,borderRadius:8,background:`linear-gradient(135deg,${T.g4},${T.g5})`,display:"flex",alignItems:"center",justifyContent:"center",color:T.w,fontSize:9,fontWeight:700,fontFamily:"'Space Mono',monospace",flexShrink:0}}>{h.country}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.dk}}>{k} <span style={{fontSize:9,color:T.lt,fontWeight:400}}>— {h.city}</span></div>
+                  <div style={{fontSize:8,color:T.sub,display:"flex",gap:6,flexWrap:"wrap",fontFamily:"'Space Mono',monospace"}}>
+                    <span>{h.sector}</span><span>•</span><span>{h.sqm.toLocaleString()}m²</span><span>•</span><span>{h.emp} staff</span>
+                  </div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,fontWeight:800,color:yy<0?T.grn:T.red,fontFamily:"'Space Mono',monospace"}}>{FP(yy)}</div>
+                  <div style={{fontSize:8,color:T.lt}}>ESG {h.esg.e}/{h.esg.s}/{h.esg.g}</div>
+                </div>
+              </div>);
+            })}
+          </div>
+        </Card>
+
+        {/* Network Visualization Placeholder */}
+        <Card style={{padding:16,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",background:"radial-gradient(circle at 50% 50%,#0A1A10 0%,#050505 70%)"}}>
+          <div style={{position:"relative",width:200,height:200}}>
+            <div style={{position:"absolute",inset:0,border:"1px solid rgba(0,255,136,.1)",borderRadius:"50%"}}/>
+            <div style={{position:"absolute",inset:20,border:"1px solid rgba(0,255,136,.08)",borderRadius:"50%"}}/>
+            <div style={{position:"absolute",inset:40,border:"1px solid rgba(0,255,136,.06)",borderRadius:"50%"}}/>
+            {[{x:50,y:8,l:"SG"},{x:15,y:35,l:"DE"},{x:85,y:25,l:"US"},{x:55,y:50,l:"AE"},{x:80,y:55,l:"JP"},{x:20,y:65,l:"GB"},{x:35,y:80,l:"BR"},{x:70,y:78,l:"AU"}].map((p,i)=>(
+              <div key={i} style={{position:"absolute",left:`${p.x}%`,top:`${p.y}%`,transform:"translate(-50%,-50%)",animation:`float 3s ease ${i*0.4}s infinite`}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:T.gDim2,border:`1px solid ${T.g3}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:700,color:T.g1,fontFamily:"'Space Mono',monospace",boxShadow:`0 0 12px rgba(0,255,136,.15)`}}>{p.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:14,fontWeight:700,color:T.g1,textAlign:"center",marginTop:12,fontFamily:"'Space Mono',monospace"}}>GLOBAL NETWORK</div>
+          <div style={{fontSize:10,color:T.sub,textAlign:"center",maxWidth:220,marginTop:4}}>8 facilities across 8 countries. Real-time emissions monitoring via IoT + satellite telemetry.</div>
+          <div style={{marginTop:12,display:"flex",gap:8}}>
+            {[{l:"Total Sites",v:"8"},{l:"Countries",v:"8"},{l:"Employees",v:F(ks.reduce((s,k)=>s+FACILITIES[k].emp,0))},{l:"Area",v:F(ks.reduce((s,k)=>s+FACILITIES[k].sqm,0))+"m²"}].map((s,i)=>(
+              <div key={i} style={{textAlign:"center",padding:"4px 8px",borderRadius:6,background:T.gDim}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.g1,fontFamily:"'Space Mono',monospace"}}>{s.v}</div>
+                <div style={{fontSize:7,color:T.sub,textTransform:"uppercase",letterSpacing:.5}}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Performance Matrix */}
+      <Card style={{padding:16}}>
+        <Sec sub="YTD Performance — Emissions, ESG, Risk, Financial — Click headers to sort" tag="MATRIX">Global Facility Performance</Sec>
+        <div style={{overflowX:"auto",marginTop:8}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+            <thead><tr style={{borderBottom:`2px solid ${T.g4}`}}>
+              {["Facility","City","Sector","Emissions YoY","Energy YoY","Water YoY","Diversion %","ESG Score","Risk Score","Predicted Δ","Green Rev","Carbon Tax"].map((h,i)=>{
+                const sortKeys=["id","city","sector","tY","eY","wY","divR","esgAvg","risk","pred","grev","ctax"];
+                const sk=sortKeys[i];
+                return <th key={h} onClick={()=>handleSort(sk)} style={{padding:"8px 6px",textAlign:i<3?"left":"right",fontWeight:700,color:sortCol===sk?T.g1:T.sub,whiteSpace:"nowrap",fontSize:9,cursor:"pointer",userSelect:"none",fontFamily:"'Space Mono',monospace",letterSpacing:.5,textTransform:"uppercase"}}>{h}{sortCol===sk?(sortDir==="asc"?" ↑":" ↓"):""}</th>;
+              })}
+            </tr></thead>
+            <tbody>{sortedHc.map((h,i)=>(
+              <tr key={h.id} style={{borderBottom:`1px solid ${T.bdr}`,background:i%2?T.card:T.bg2,cursor:"pointer"}} onClick={()=>setFacility(h.id)}>
+                <td style={{padding:"8px 6px",fontWeight:700,color:T.g1,fontSize:11,fontFamily:"'Space Mono',monospace"}}>{h.id}</td>
+                <td style={{padding:"8px 6px",color:T.dk,fontSize:10}}>{h.city}</td>
+                <td style={{padding:"8px 6px",color:T.sub,fontSize:9}}>{h.sector}</td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:700,color:(h.tY||0)<0?T.grn:T.red,fontFamily:"'Space Mono',monospace"}}>{FP(h.tY)}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:600,color:(h.eY||0)<0?T.grn:T.red}}>{FP(h.eY)}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:600,color:(h.wY||0)<0?T.grn:T.red}}>{FP(h.wY)}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right",fontWeight:700}}>{h.divR.toFixed(1)}%</td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:700,color:h.esgAvg>=80?T.grn:h.esgAvg>=70?T.amb:T.red}}>{h.esgAvg.toFixed(1)}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:600,color:h.risk<=20?T.grn:h.risk<=30?T.amb:T.red}}>{h.risk}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right"}}><span style={{fontWeight:700,color:T.cyan,fontFamily:"'Space Mono',monospace"}}>{FP(h.pred)}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"right",fontWeight:600,color:T.grn}}>${h.grev}M</td>
+                <td style={{padding:"8px 6px",textAlign:"right",fontWeight:600,color:T.red}}>${h.ctax}M</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+    </div>);
+  };
+
+  /* ═══ EMISSIONS ═══ */
+  const renderEmissions=()=>{
+    const s1Y=P(d.s1_25,d.s1_24),s2Y=P(d.s2_25,d.s2_24),s3Y=P(d.s3_25,d.s3_24);
+    const scopeBreak=[{name:"Scope 1",v24:d.s1_24,v25:d.s1_25,color:T.amb},{name:"Scope 2",v24:d.s2_24,v25:d.s2_25,color:T.cyan},{name:"Scope 3",v24:d.s3_24,v25:d.s3_25,color:T.purple}];
+    const intensity25=d.sqm>0?d.total25/d.sqm:0;
+    const intensity24=d.sqm>0?d.total24/d.sqm:0;
+
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(155px,1fr))">
+        <Metric label="SCOPE 1 DIRECT" value={F(d.s1_25)+"t"} sub={`PY: ${F(d.s1_24)}`} yoy={s1Y} icon="🏭" accent={T.amb}/>
+        <Metric label="SCOPE 2 INDIRECT" value={F(d.s2_25)+"t"} sub={`PY: ${F(d.s2_24)}`} yoy={s2Y} icon="⚡" accent={T.cyan}/>
+        <Metric label="SCOPE 3 VALUE CHAIN" value={F(d.s3_25)+"t"} sub={`PY: ${F(d.s3_24)}`} yoy={s3Y} icon="🔗" accent={T.purple}/>
+        <Metric label="TOTAL EMISSIONS" value={F(d.total25)+"t"} sub={`PY: ${F(d.total24)}`} yoy={tY} icon="🌍" accent={T.g1} badge="GHG PROTOCOL"/>
+        <Metric label="CARBON INTENSITY" value={intensity25.toFixed(2)} sub={`tCO₂e/m² | PY: ${intensity24.toFixed(2)}`} yoy={P(intensity25,intensity24)} icon="📐" accent={T.blue}/>
+      </Grid>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec sub="Scope 1 + 2 + 3 stacked monthly comparison">Total Emissions — 2024 vs 2025</Sec>
+          <ResponsiveContainer width="100%" height={220}><ComposedChart data={md}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={F}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Bar dataKey="total24" name="2024 Total" fill="rgba(255,255,255,.08)" radius={[2,2,0,0]} barSize={12}/>
+            <Bar dataKey="total25" name="2025 Total" fill={T.g3} radius={[2,2,0,0]} barSize={12}/>
+            <Line dataKey="s1_25" name="Scope 1" stroke={T.amb} strokeWidth={1.5} dot={false}/>
+            <Line dataKey="s2_25" name="Scope 2" stroke={T.cyan} strokeWidth={1.5} dot={false}/>
+          </ComposedChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec sub="11-Category GHG Protocol Breakdown">Emissions by Source Category</Sec>
+          <ResponsiveContainer width="100%" height={220}><PieChart><Pie data={SCOPE_CATS} cx="50%" cy="50%" innerRadius={45} outerRadius={82} paddingAngle={2} dataKey="value" nameKey="name" label={({name,percent})=>`${name.split(' ')[0]} ${(percent*100).toFixed(0)}%`} style={{fontSize:7.5,fill:T.sub}}>
+            {SCOPE_CATS.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec>Scope 3 Breakdown — Monthly</Sec>
+          <ResponsiveContainer width="100%" height={200}><AreaChart data={md}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={F}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Area dataKey="s3_24" name="2024" fill="rgba(170,102,255,.08)" stroke="rgba(170,102,255,.4)" strokeWidth={1.5}/>
+            <Area dataKey="s3_25" name="2025" fill="rgba(170,102,255,.15)" stroke={T.purple} strokeWidth={2}/>
+          </AreaChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec>Scope 1 vs Scope 2 Trend</Sec>
+          <ResponsiveContainer width="100%" height={200}><LineChart data={md}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={F}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Line dataKey="s1_25" name="Scope 1 (2025)" stroke={T.amb} strokeWidth={2} dot={{r:2,fill:T.amb}}/>
+            <Line dataKey="s2_25" name="Scope 2 (2025)" stroke={T.cyan} strokeWidth={2} dot={{r:2,fill:T.cyan}}/>
+            <Line dataKey="s1_24" name="Scope 1 (2024)" stroke="rgba(255,184,0,.3)" strokeWidth={1} dot={false} strokeDasharray="4 4"/>
+            <Line dataKey="s2_24" name="Scope 2 (2024)" stroke="rgba(0,212,255,.3)" strokeWidth={1} dot={false} strokeDasharray="4 4"/>
+          </LineChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      {facility==="ALL"&&<Card style={{padding:14}}>
+        <Sec>Emissions Reduction by Facility (YoY %)</Sec>
+        <ResponsiveContainer width="100%" height={220}><BarChart data={hc} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis type="number" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={v=>v.toFixed(0)+"%"}/><YAxis type="category" dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} width={55}/><Tooltip content={<TT/>}/>
+          <Bar dataKey="tY" name="Emissions YoY%" radius={[0,3,3,0]} barSize={12}>{hc.map((e,i)=><Cell key={i} fill={(e.tY||0)<0?T.grn:T.red}/>)}</Bar>
+        </BarChart></ResponsiveContainer>
+      </Card>}
+    </div>);
+  };
+
+  /* ═══ SUPPLY CHAIN (Scope 3) ═══ */
+  const renderScope3=()=>{
+    const categories=[
+      {cat:"Purchased Goods & Services",pct:34,risk:"Medium",trend:-2.1,suppliers:1240},
+      {cat:"Capital Goods",pct:8,risk:"Low",trend:-4.8,suppliers:86},
+      {cat:"Fuel & Energy Activities",pct:12,risk:"Medium",trend:-6.2,suppliers:24},
+      {cat:"Upstream Transportation",pct:18,risk:"High",trend:+1.4,suppliers:340},
+      {cat:"Waste Generated",pct:6,risk:"Low",trend:-8.9,suppliers:18},
+      {cat:"Business Travel",pct:9,risk:"Medium",trend:-12.4,suppliers:45},
+      {cat:"Employee Commuting",pct:7,risk:"Low",trend:-3.1,suppliers:0},
+      {cat:"Downstream Distribution",pct:6,risk:"Low",trend:-5.5,suppliers:180}
+    ];
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(160px,1fr))">
+        <Metric label="SCOPE 3 TOTAL" value={F(d.s3_25)+"t"} yoy={P(d.s3_25,d.s3_24)} icon="🔗" accent={T.purple}/>
+        <Metric label="SUPPLIER COUNT" value="1,933" sub="Across 8 categories" icon="🏢" accent={T.blue}/>
+        <Metric label="SUPPLY CHAIN RISK" value="MEDIUM" sub="3 high-risk categories" icon="⚠️" accent={T.amb} badge="LIVE"/>
+        <Metric label="DATA COVERAGE" value="78.4%" sub="Tier 1: 92% | Tier 2: 64%" icon="📊" accent={T.cyan}/>
+      </Grid>
+
+      <Card style={{padding:16}}>
+        <Sec sub="GHG Protocol Category Breakdown — Tier 1 & 2 Supplier Data" tag="SCOPE 3">Value Chain Emissions Matrix</Sec>
+        <div style={{overflowX:"auto",marginTop:8}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+            <thead><tr style={{borderBottom:`2px solid ${T.purple}`}}>
+              {["Category","Share %","Risk Level","YoY Trend","Suppliers","Status"].map(h=>(
+                <th key={h} style={{padding:"8px 6px",textAlign:h==="Category"?"left":"center",fontWeight:700,color:T.sub,fontSize:9,fontFamily:"'Space Mono',monospace",letterSpacing:.5,textTransform:"uppercase"}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{categories.map((c,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${T.bdr}`,background:i%2?T.card:T.bg2}}>
+                <td style={{padding:"10px 6px",fontWeight:600,color:T.dk}}>{c.cat}</td>
+                <td style={{padding:"10px 6px",textAlign:"center"}}><div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"center"}}><div style={{width:60}}><ProgressBar pct={c.pct*2.5} color={T.purple}/></div><span style={{fontWeight:700,color:T.w,fontFamily:"'Space Mono',monospace"}}>{c.pct}%</span></div></td>
+                <td style={{padding:"10px 6px",textAlign:"center"}}><span style={{fontSize:9,fontWeight:700,color:c.risk==="High"?T.red:c.risk==="Medium"?T.amb:T.grn,background:c.risk==="High"?T.redDim:c.risk==="Medium"?T.ambDim:T.grnBg,padding:"2px 8px",borderRadius:10}}>{c.risk}</span></td>
+                <td style={{padding:"10px 6px",textAlign:"center"}}><span style={{fontWeight:700,color:c.trend<0?T.grn:T.red,fontFamily:"'Space Mono',monospace"}}>{FP(c.trend)}</span></td>
+                <td style={{padding:"10px 6px",textAlign:"center",fontFamily:"'Space Mono',monospace",color:T.sub}}>{c.suppliers||"—"}</td>
+                <td style={{padding:"10px 6px",textAlign:"center"}}><span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",background:c.trend<0?T.grn:T.red,boxShadow:`0 0 6px ${c.trend<0?T.grn:T.red}`}}/></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec>Scope 3 Monthly Trend</Sec>
+          <ResponsiveContainer width="100%" height={200}><AreaChart data={md}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={F}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Area dataKey="s3_24" name="2024" fill="rgba(170,102,255,.06)" stroke="rgba(170,102,255,.3)" strokeWidth={1}/>
+            <Area dataKey="s3_25" name="2025" fill="rgba(170,102,255,.12)" stroke={T.purple} strokeWidth={2}/>
+          </AreaChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec>Category Distribution</Sec>
+          <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={categories.map(c=>({name:c.cat.split(' ').slice(0,2).join(' '),value:c.pct}))} cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={2} dataKey="value" label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} style={{fontSize:7,fill:T.sub}}>
+            {categories.map((e,i)=><Cell key={i} fill={[T.purple,"#9955EE","#8844DD","#7733CC","#6622BB","#5511AA","#440099","#330088"][i]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+    </div>);
+  };
+
+  /* ═══ CARBON MARKETS ═══ */
+  const renderCarbon=()=>{
+    const priceData=MO.map((m,i)=>({month:m,eu:48+Math.sin(i*.5)*12+i*0.8,vol:28+Math.cos(i*.4)*8+i*0.5,gcc:15+Math.sin(i*.6)*5+i*0.3}));
+    const offsetProjects=[
+      {name:"Mangrove Restoration — Abu Dhabi",type:"Nature-Based",credits:1200,price:42,vintage:2024,status:"Active"},
+      {name:"Solar Farm — Rajasthan",type:"Renewable Energy",credits:3400,price:18,vintage:2025,status:"Active"},
+      {name:"Direct Air Capture — Iceland",type:"Technology",credits:800,price:180,vintage:2025,status:"Pending"},
+      {name:"Reforestation — Amazon Basin",type:"Nature-Based",credits:2100,price:32,vintage:2024,status:"Active"},
+      {name:"Wind Energy — North Sea",type:"Renewable Energy",credits:2800,price:24,vintage:2025,status:"Active"},
+      {name:"Cookstove — Sub-Saharan Africa",type:"Community",credits:1600,price:15,vintage:2024,status:"Active"}
+    ];
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(160px,1fr))">
+        <Metric label="ACTIVE CREDITS" value={F(d.credits)} sub="Carbon offsets held" icon="💎" accent={T.g1} badge="OFFSETS"/>
+        <Metric label="EU ETS PRICE" value="€58.2/t" sub="▲ +12.4% YTD" icon="📈" accent={T.g2} inv/>
+        <Metric label="VOLUNTARY MARKET" value="$34.8/t" sub="Average verified credit" icon="🌿" accent={T.g3}/>
+        <Metric label="OFFSET COVERAGE" value="32%" sub="of total emissions" icon="🎯" accent={T.cyan} badge="TARGET: 50%"/>
+        <Metric label="PORTFOLIO VALUE" value="$4.2M" sub="Mark-to-market" icon="💰" accent={T.amb} inv/>
+      </Grid>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec sub="EU ETS, Voluntary, GCC Regional">Carbon Price Indices</Sec>
+          <ResponsiveContainer width="100%" height={210}><LineChart data={priceData}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Line dataKey="eu" name="EU ETS (€)" stroke={T.g1} strokeWidth={2.5} dot={{r:2,fill:T.g1}}/>
+            <Line dataKey="vol" name="Voluntary ($)" stroke={T.cyan} strokeWidth={2} dot={{r:2}}/>
+            <Line dataKey="gcc" name="GCC ($)" stroke={T.amb} strokeWidth={1.5} dot={{r:2}} strokeDasharray="4 4"/>
+          </LineChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec>Offset Portfolio Mix</Sec>
+          <ResponsiveContainer width="100%" height={210}><PieChart><Pie data={[{name:"Nature-Based",value:3300},{name:"Renewable Energy",value:6200},{name:"Technology (DAC)",value:800},{name:"Community",value:1600}]} cx="50%" cy="50%" innerRadius={42} outerRadius={80} paddingAngle={3} dataKey="value" label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} style={{fontSize:8,fill:T.sub}}>
+            {[T.g2,T.cyan,T.purple,T.amb].map((c,i)=><Cell key={i} fill={c}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      <Card style={{padding:16}}>
+        <Sec sub="Active offset projects across VCS, Gold Standard, and proprietary registries" tag="PORTFOLIO">Carbon Credit Registry</Sec>
+        <div style={{overflowX:"auto",marginTop:8}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+            <thead><tr style={{borderBottom:`2px solid ${T.g4}`}}>
+              {["Project","Type","Credits","Price/t","Vintage","Status"].map(h=>(
+                <th key={h} style={{padding:"8px 6px",textAlign:h==="Project"?"left":"center",fontWeight:700,color:T.sub,fontSize:9,fontFamily:"'Space Mono',monospace"}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{offsetProjects.map((p,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${T.bdr}`,background:i%2?T.card:T.bg2}}>
+                <td style={{padding:"8px 6px",fontWeight:600,color:T.dk}}>{p.name}</td>
+                <td style={{padding:"8px 6px",textAlign:"center"}}><span style={{fontSize:9,fontWeight:600,color:p.type==="Technology"?T.purple:p.type==="Nature-Based"?T.g2:p.type==="Renewable Energy"?T.cyan:T.amb,background:p.type==="Technology"?"rgba(170,102,255,.1)":p.type==="Nature-Based"?T.grnBg:p.type==="Renewable Energy"?T.blueDim:T.ambDim,padding:"2px 8px",borderRadius:10}}>{p.type}</span></td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,fontFamily:"'Space Mono',monospace",color:T.w}}>{p.credits.toLocaleString()}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontFamily:"'Space Mono',monospace",color:T.sub}}>${p.price}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:T.sub}}>{p.vintage}</td>
+                <td style={{padding:"8px 6px",textAlign:"center"}}><StatusDot status={p.status}/></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+    </div>);
+  };
+
+  /* ═══ ESG ═══ */
+  const renderESG=()=>{
+    const avgE=hc.reduce((s,h)=>s+FACILITIES[h.id].esg.e,0)/hc.length;
+    const avgS=hc.reduce((s,h)=>s+FACILITIES[h.id].esg.s,0)/hc.length;
+    const avgG=hc.reduce((s,h)=>s+FACILITIES[h.id].esg.g,0)/hc.length;
+    const radarData=[{dim:"Carbon Mgmt",v:82},{dim:"Energy Eff.",v:78},{dim:"Water Steward.",v:75},{dim:"Waste Circular.",v:71},{dim:"Biodiversity",v:65},{dim:"Social Impact",v:74},{dim:"Governance",v:81},{dim:"Innovation",v:88}];
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(155px,1fr))">
+        <Metric label="ESG COMPOSITE" value={((avgE+avgS+avgG)/3).toFixed(1)} sub="Weighted average all facilities" icon="📊" accent={T.g1} badge="AA+"/>
+        <Metric label="ENVIRONMENTAL" value={avgE.toFixed(1)} icon="🌿" accent={T.g2}/>
+        <Metric label="SOCIAL" value={avgS.toFixed(1)} icon="👥" accent={T.cyan}/>
+        <Metric label="GOVERNANCE" value={avgG.toFixed(1)} icon="🏛️" accent={T.amb}/>
+        <Metric label="PEER PERCENTILE" value="87th" sub="vs S&P 500 ESG" icon="🏆" accent={T.purple} inv/>
+      </Grid>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec>ESG Radar — 8 Dimensions</Sec>
+          <ResponsiveContainer width="100%" height={250}><RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+            <PolarGrid stroke={T.bdr2}/>
+            <PolarAngleAxis dataKey="dim" tick={{fontSize:8,fill:T.sub}}/>
+            <PolarRadiusAxis angle={90} domain={[0,100]} tick={{fontSize:8,fill:T.lt}} stroke={T.bdr}/>
+            <Radar name="Score" dataKey="v" stroke={T.g1} fill={T.g1} fillOpacity={0.15} strokeWidth={2}/>
+          </RadarChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec>ESG Score by Facility</Sec>
+          <ResponsiveContainer width="100%" height={250}><BarChart data={hc.map(h=>({id:h.id,E:FACILITIES[h.id].esg.e,S:FACILITIES[h.id].esg.s,G:FACILITIES[h.id].esg.g}))} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis type="number" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} domain={[0,100]}/><YAxis type="category" dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} width={55}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Bar dataKey="E" name="Environmental" stackId="a" fill={T.g3} barSize={12}/>
+            <Bar dataKey="S" name="Social" stackId="b" fill={T.cyan} barSize={12}/>
+            <Bar dataKey="G" name="Governance" stackId="c" fill={T.amb} barSize={12}/>
+          </BarChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+    </div>);
+  };
+
+  /* ═══ FINANCIAL ═══ */
+  const renderFin=()=>{
+    const totalGrev=hc.reduce((s,h)=>s+h.grev,0);
+    const totalCtax=hc.reduce((s,h)=>s+h.ctax,0);
+    const totalRoi=hc.reduce((s,h)=>s+h.roi,0)/hc.length;
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(170px,1fr))">
+        <Metric label="GREEN REVENUE" value={FM(totalGrev)} sub="Revenue from sustainable products/services" icon="💚" accent={T.g1} inv/>
+        <Metric label="CARBON TAX EXPOSURE" value={FM(totalCtax)} sub="Projected liability across jurisdictions" icon="⚠️" accent={T.red}/>
+        <Metric label="SUSTAINABILITY ROI" value={totalRoi.toFixed(0)+"%"} sub="Average across all facilities" icon="📈" accent={T.g2} inv/>
+        <Metric label="AVOIDED COSTS" value="$12.8M" sub="Energy efficiency + waste diversion" icon="🛡️" accent={T.cyan} inv/>
+        <Metric label="GREEN BOND CAPACITY" value="$45M" sub="Based on current ESG rating" icon="🏦" accent={T.purple} inv/>
+      </Grid>
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}}>
+          <Sec>Green Revenue by Facility ($M)</Sec>
+          <ResponsiveContainer width="100%" height={220}><BarChart data={hc} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis type="number" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis type="category" dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} width={55}/><Tooltip content={<TT/>}/>
+            <Bar dataKey="grev" name="Green Rev ($M)" radius={[0,4,4,0]} barSize={12}>{hc.map((e,i)=><Cell key={i} fill={T.g3}/>)}</Bar>
+          </BarChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec>Carbon Tax Exposure by Facility ($M)</Sec>
+          <ResponsiveContainer width="100%" height={220}><BarChart data={hc} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis type="number" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis type="category" dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} width={55}/><Tooltip content={<TT/>}/>
+            <Bar dataKey="ctax" name="Carbon Tax ($M)" radius={[0,4,4,0]} barSize={12}>{hc.map((e,i)=><Cell key={i} fill={T.red}/>)}</Bar>
+          </BarChart></ResponsiveContainer>
+        </Card>
+      </Grid>
+      <Card style={{padding:14}}>
+        <Sec>Sustainability ROI by Facility (%)</Sec>
+        <ResponsiveContainer width="100%" height={200}><BarChart data={hc}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><Tooltip content={<TT/>}/>
+          <Bar dataKey="roi" name="ROI %" radius={[4,4,0,0]} barSize={28}>{hc.map((e,i)=><Cell key={i} fill={[T.g1,T.g2,T.g3,T.g4,T.g5,T.cyan,T.blue,T.purple][i]}/>)}</Bar>
+        </BarChart></ResponsiveContainer>
+      </Card>
+    </div>);
+  };
+
+  /* ═══ COMPLIANCE ═══ */
+  const renderCompliance=()=>(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+    <Grid cols="repeat(auto-fit,minmax(160px,1fr))">
+      <Metric label="OVERALL READINESS" value="81.4%" sub="Across 8 regulatory frameworks" icon="📋" accent={T.g1} badge="ON TRACK"/>
+      <Metric label="CSRD STATUS" value="82%" sub="EU Directive — Due 2026 Q1" icon="🇪🇺" accent={T.g2}/>
+      <Metric label="ISSB S1/S2" value="91%" sub="IFRS Foundation" icon="🌐" accent={T.cyan} badge="COMPLIANT"/>
+      <Metric label="SBTi VALIDATED" value="74%" sub="Near-term targets submitted" icon="🎯" accent={T.amb}/>
+    </Grid>
+
+    <Card style={{padding:16}}>
+      <Sec sub="Global regulatory compliance status across jurisdictions" tag="LIVE">Regulatory Compliance Tracker</Sec>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>
+        {REGULATIONS.map((r,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:8,background:T.bg3,border:`1px solid ${T.bdr}`}}>
+            <div style={{flex:1,minWidth:120}}>
+              <div style={{fontSize:12,fontWeight:700,color:T.dk}}>{r.name}</div>
+              <div style={{fontSize:9,color:T.sub}}>{r.region} • Deadline: {r.deadline}</div>
+            </div>
+            <div style={{width:160}}><ProgressBar pct={r.pct} color={r.pct>=85?T.grn:r.pct>=70?T.amb:T.red}/></div>
+            <span style={{fontSize:13,fontWeight:800,color:T.w,fontFamily:"'Space Mono',monospace",minWidth:36,textAlign:"right"}}>{r.pct}%</span>
+            <StatusDot status={r.status}/>
+          </div>
+        ))}
+      </div>
+    </Card>
+
+    {facility==="ALL"&&<Card style={{padding:14}}>
+      <Sec>Compliance Readiness by Facility</Sec>
+      <ResponsiveContainer width="100%" height={220}><BarChart data={hc.map(h=>({id:h.id,CSRD:h.csrd,ISSB:h.issb}))}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="id" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} domain={[0,100]}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+        <Bar dataKey="CSRD" name="CSRD %" fill={T.g3} barSize={14} radius={[3,3,0,0]}/>
+        <Bar dataKey="ISSB" name="ISSB %" fill={T.cyan} barSize={14} radius={[3,3,0,0]}/>
+      </BarChart></ResponsiveContainer>
+    </Card>}
+  </div>);
+
+  /* ═══ AI PREDICTIONS ═══ */
+  const renderAI=()=>{
+    const predData=MO.map((m,i)=>{
+      const base=d.total25/12;
+      const actual=md[i].total25;
+      const predicted=actual*(1+(Math.random()*0.04-0.02));
+      const optimized=actual*0.92;
+      return{month:m,actual,predicted:Math.round(predicted),optimized:Math.round(optimized),baseline:Math.round(base)};
+    });
+    return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <Grid cols="repeat(auto-fit,minmax(160px,1fr))">
+        <Metric label="SCENARIO CONFIDENCE" value="94.2%" sub="Illustrative planning assumption" icon="🧠" accent={T.g1} badge="Scenario model"/>
+        <Metric label="PREDICTED Δ 2026" value="-8.4%" sub="Scenario projection (illustrative)" icon="📉" accent={T.cyan}/>
+        <Metric label="OPTIMIZATION POTENTIAL" value="-12.1%" sub="If all recommendations adopted" icon="🎯" accent={T.g2}/>
+        <Metric label="ANOMALIES DETECTED" value="3" sub="Last 30 days • Auto-investigated" icon="🔔" accent={T.amb} badge="ACTIVE"/>
+        <Metric label="NET-ZERO ETA" value="2041" sub="Based on current trajectory" icon="🌍" accent={T.purple}/>
+      </Grid>
+
+      <Grid cols="1fr 1fr">
+        <Card style={{padding:14}} glow>
+          <Sec sub="Actual vs Projected vs Optimised scenario (illustrative)" tag="SCENARIO">Emissions Projection</Sec>
+          <ResponsiveContainer width="100%" height={220}><LineChart data={predData}><CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A"/><XAxis dataKey="month" tick={{fontSize:9,fill:T.sub}} stroke={T.bdr}/><YAxis tick={{fontSize:9,fill:T.sub}} stroke={T.bdr} tickFormatter={F}/><Tooltip content={<TT/>}/><Legend wrapperStyle={{fontSize:9}}/>
+            <Line dataKey="actual" name="Actual 2025" stroke={T.g1} strokeWidth={2.5} dot={{r:3,fill:T.g1}}/>
+            <Line dataKey="predicted" name="Projected" stroke={T.cyan} strokeWidth={2} strokeDasharray="6 3" dot={{r:2}}/>
+            <Line dataKey="optimized" name="Optimized" stroke={T.purple} strokeWidth={1.5} strokeDasharray="3 3" dot={false}/>
+            <Line dataKey="baseline" name="Baseline" stroke="rgba(255,255,255,.15)" strokeWidth={1} dot={false}/>
+          </LineChart></ResponsiveContainer>
+        </Card>
+        <Card style={{padding:14}}>
+          <Sec sub="Ranked by potential impact">Recommended Actions</Sec>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8}}>
+            {[
+              {action:"Deploy smart HVAC scheduling across SG-SIN & AE-DXB",impact:"-4,200 tCO₂e/yr",conf:96,priority:"Critical"},
+              {action:"Switch US-NYC to 100% renewable PPA by Q3 2026",impact:"-8,100 tCO₂e/yr",conf:92,priority:"High"},
+              {action:"Optimize JP-TKY waste-to-energy conversion pipeline",impact:"-1,800 tCO₂e/yr",conf:88,priority:"Medium"},
+              {action:"Reroute BR-SAO upstream logistics to rail transport",impact:"-2,400 tCO₂e/yr",conf:84,priority:"Medium"},
+              {action:"Install DAC units at AU-SYD for residual offset",impact:"-1,200 tCO₂e/yr",conf:78,priority:"Low"}
+            ].map((r,i)=>(
+              <div key={i} style={{padding:"8px 12px",borderRadius:6,background:T.bg3,border:`1px solid ${i===0?'rgba(0,255,136,.2)':T.bdr}`,animation:`slideUp .3s ease ${i*0.08}s both`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                  <span style={{fontSize:10,fontWeight:600,color:T.dk}}>{r.action}</span>
+                  <span style={{fontSize:8,fontWeight:700,color:r.priority==="Critical"?T.red:r.priority==="High"?T.amb:T.sub,background:r.priority==="Critical"?T.redDim:r.priority==="High"?T.ambDim:"rgba(255,255,255,.05)",padding:"1px 6px",borderRadius:8}}>{r.priority}</span>
+                </div>
+                <div style={{display:"flex",gap:12,fontSize:9,color:T.lt,fontFamily:"'Space Mono',monospace"}}>
+                  <span>Impact: <span style={{color:T.grn,fontWeight:700}}>{r.impact}</span></span>
+                  <span>Confidence: <span style={{color:T.cyan}}>{r.conf}%</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </Grid>
+
+      <Card style={{padding:14}}>
+        <Sec sub="Anomaly detection with root cause analysis powered by transformer architecture" tag="ANOMALY ENGINE">Real-Time Monitoring Feed</Sec>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:8,marginTop:8}}>
+          {[
+            {time:"2h ago",facility:"BR-SAO",type:"Scope 3 Spike",desc:"Upstream transport emissions +14% vs rolling average. Root cause: supplier rerouting via road freight. Auto-alert sent to procurement.",severity:"High"},
+            {time:"6h ago",facility:"AE-DXB",type:"Energy Anomaly",desc:"Chiller plant COP dropped below 4.0. Predicted maintenance window: 72h. Work order auto-generated.",severity:"Medium"},
+            {time:"1d ago",facility:"SG-SIN",type:"Water Efficiency",desc:"Water recycling rate improved to 34% after grey-water system commissioning. Target exceeded by 6%.",severity:"Info"}
+          ].map((a,i)=>(
+            <div key={i} style={{padding:"10px 14px",borderRadius:8,background:T.bg3,borderLeft:`3px solid ${a.severity==="High"?T.red:a.severity==="Medium"?T.amb:T.g2}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:T.dk}}>{a.facility} — {a.type}</span>
+                <span style={{fontSize:8,color:T.lt,fontFamily:"'Space Mono',monospace"}}>{a.time}</span>
+              </div>
+              <div style={{fontSize:9,color:T.sub,lineHeight:1.5}}>{a.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>);
+  };
+
+  /* ═══ MAIN ═══ */
+  return(<div style={{minHeight:"100vh",background:T.bg,fontFamily:"'Sora',sans-serif"}}>
+    <div style={{background:"rgba(255,184,0,.1)",borderBottom:"1px solid rgba(255,184,0,.3)",color:"#FFB800",fontSize:10,padding:"6px 20px",textAlign:"center",fontFamily:"'Space Mono',monospace",letterSpacing:.5}}>CONCEPT BLUEPRINT · ALL FACILITIES AND FIGURES ARE ILLUSTRATIVE · DESIGNED BY ARAFAT LAKHANI</div>
+    {/* Header */}
+    <div style={{background:"linear-gradient(90deg,#050505,#0A1210,#050505)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8,borderBottom:`1px solid ${T.bdr}`}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:32,height:32,borderRadius:6,background:`linear-gradient(135deg,${T.g4},${T.g1})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,animation:"glow 3s ease infinite"}}>🌍</div>
+        <div>
+          <div style={{fontSize:15,fontWeight:800,color:T.w,letterSpacing:2,fontFamily:"'Space Mono',monospace"}}>TERRA <span style={{color:T.g1}}>NEXUS</span></div>
+          <div style={{fontSize:8,color:T.lt,letterSpacing:1.5,textTransform:"uppercase"}}>Global ESG & Carbon Intelligence Platform</div>
+        </div>
+        <div style={{height:20,width:1,background:T.bdr2,margin:"0 4px"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:T.g1,boxShadow:`0 0 8px ${T.g1}`,animation:"pulse 2s infinite"}}/>
+          <span style={{fontSize:8,color:T.g2,fontFamily:"'Space Mono',monospace"}}>SYSTEMS ONLINE</span>
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <select value={facility} onChange={e=>setFacility(e.target.value)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${T.bdr2}`,background:T.bg3,color:T.w,fontSize:10,fontWeight:600,cursor:"pointer",outline:"none",fontFamily:"'Space Mono',monospace"}}>
+          <option value="ALL">◉ All Facilities (8)</option>
+          {ks.map(k=><option key={k} value={k}>{k} — {FACILITIES[k].city}</option>)}
+        </select>
+        <div style={{background:T.gDim,borderRadius:4,padding:"4px 8px",fontSize:9,color:T.g1,fontWeight:700,fontFamily:"'Space Mono',monospace",border:`1px solid ${T.gDim2}`}}>2025 YTD</div>
+      </div>
+    </div>
+
+    {/* Tabs */}
+    <div style={{background:T.bg2,borderBottom:`1px solid ${T.bdr}`,padding:"3px 20px",display:"flex",gap:2,overflowX:"auto"}}>
+      {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:tab===t.id?700:400,color:tab===t.id?T.bg:T.sub,background:tab===t.id?T.g1:"transparent",whiteSpace:"nowrap",fontFamily:"'Space Mono',monospace",letterSpacing:.3,transition:"all .2s"}}>
+        <span style={{fontSize:10}}>{t.ic}</span>{t.l}
+      </button>)}
+    </div>
+
+    {/* Facility Banner */}
+    {facility!=="ALL"&&(<div style={{margin:"8px 20px 0",padding:"8px 14px",background:T.bg3,borderRadius:8,border:`1px solid ${T.gDim2}`,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{width:34,height:34,borderRadius:8,background:`linear-gradient(135deg,${T.g4},${T.g1})`,display:"flex",alignItems:"center",justifyContent:"center",color:"#050505",fontWeight:800,fontSize:11,fontFamily:"'Space Mono',monospace"}}>{FACILITIES[facility].country}</div>
+      <div style={{flex:1,minWidth:100}}>
+        <div style={{fontSize:12,fontWeight:700,color:T.w}}>{FACILITIES[facility].f}</div>
+        <div style={{fontSize:9,color:T.sub,display:"flex",gap:6,flexWrap:"wrap",fontFamily:"'Space Mono',monospace"}}>
+          <span>{FACILITIES[facility].city}, {FACILITIES[facility].country}</span><span>•</span>
+          <span>{FACILITIES[facility].sector}</span><span>•</span>
+          <span>{FACILITIES[facility].sqm.toLocaleString()}m²</span><span>•</span>
+          <span>{FACILITIES[facility].emp} employees</span>
+        </div>
+      </div>
+      <button onClick={()=>setFacility("ALL")} style={{padding:"4px 10px",borderRadius:4,border:`1px solid ${T.bdr2}`,background:T.bg2,cursor:"pointer",fontSize:9,fontFamily:"'Space Mono',monospace",color:T.sub}}>✕ CLEAR</button>
+    </div>)}
+
+    {/* Content */}
+    <div style={{padding:"12px 20px",maxWidth:1440,margin:"0 auto"}}>
+      {tab==="exec"&&renderExec()}
+      {tab==="emissions"&&renderEmissions()}
+      {tab==="scope3"&&renderScope3()}
+      {tab==="carbon"&&renderCarbon()}
+      {tab==="esg"&&renderESG()}
+      {tab==="fin"&&renderFin()}
+      {tab==="compliance"&&renderCompliance()}
+      {tab==="ai"&&renderAI()}
+    </div>
+
+    {/* Footer */}
+    <div style={{padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,borderTop:`1px solid ${T.bdr}`,background:T.bg2,marginTop:12}}>
+      <span style={{width:4,height:4,borderRadius:"50%",background:T.g3}}/>
+      <span style={{fontSize:8,color:T.lt,fontFamily:"'Space Mono',monospace",letterSpacing:1}}>TERRA NEXUS — ESG & carbon analytics blueprint designed by Arafat Lakhani • Illustrative data for 8 fictional facilities • GHG Protocol methodology</span>
+      <span style={{width:4,height:4,borderRadius:"50%",background:T.g3}}/>
+    </div>
+  </div>);
+}
+
+document.getElementById('loading').style.display='none';
+ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard/>);
+</script></body></html>

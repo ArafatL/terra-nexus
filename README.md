@@ -6,7 +6,7 @@ Terra Nexus is a browser-based dashboard showing how a multi-site organisation c
 
 > **Illustrative data.** All eight facilities are fictional and every figure is illustrative. The project demonstrates dashboard design, data modelling and reporting logic; it does not describe any real organisation.
 
-**Live demo:** `https://<your-username>.github.io/terra-nexus/`
+**Live demo:** `(https://<your-username>.github.io/terra-nexus/](https://arafat-lakhani-portfolio.netlify.app/terra-nexus/)`
 
 ---
 

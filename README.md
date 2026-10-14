@@ -74,7 +74,7 @@ The page loads React, Recharts and Babel from the unpkg CDN, so it needs an inte
 ## Author
 
 **Arafat Lakhani** · Data & AI Analyst · Dubai, UAE
-[LinkedIn](https://linkedin.com/in/arafat-lakhani) · arafatilakhani24@gmail.com
+[LinkedIn](https://linkedin.com/in/arafat-lakhani) ·
 
 ## Licence
 
